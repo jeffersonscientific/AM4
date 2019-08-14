@@ -51,6 +51,9 @@ endif
 #. note to newbies, like me, the pkg-config file will be in the lib/pkgconfig folder,
 #. with a *.pc extension. 
 #
+#. ... but what if we just don't do anything? will Sherlock set up $PATH, etc. so we
+#. find (open-)MPI?
+#
 # MPI library.
 
 # VERBOSE
@@ -107,7 +110,7 @@ endif
 ifndef MPI_FLAGS
 # yoder:
 #FPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
-FPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
+#FPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
 else
 FPPFLAGS += $(MPI_FLAGS)
 endif
@@ -137,7 +140,7 @@ endif
 # C Compiler flags for the MPICH MPI library
 ifndef MPI_FLAGS
 #CPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
-CPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
+#CPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
 else
 CPPFLAGS += $(MPI_FLAGS)
 endif
@@ -181,7 +184,7 @@ endif
 # MPICH MPI library flags
 ifndef MPI_LIBS
 #LIBS += $(shell pkg-config --libs mpich2-f90)
-LIBS += $(shell pkg-config --libs mpich)
+#LIBS += $(shell pkg-config --libs mpich)
 else
 LIBS += $(MPI_LIBS)
 endif
