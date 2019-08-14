@@ -43,6 +43,14 @@ endif
 # If defined, use the MPI compile and link options defined in these
 # variables.  If these options are not defined, the makefile will
 # attempt to get the correct options from the `pkg-config` for mpich2
+#
+# yoder 2019_08_14 (c1):
+# mpich2 is no more... mpich2 is now just mpich, and in fact the version is 3.3.?,
+#. but it is just called mpich. also, apparently gone, are the separete -c and -fortran
+#. references. let's modify the pkg-config calls accordingly... 
+#. note to newbies, like me, the pkg-config file will be in the lib/pkgconfig folder,
+#. with a *.pc extension. 
+#
 # MPI library.
 
 # VERBOSE
@@ -94,9 +102,12 @@ FPPFLAGS += $(shell nf-config --fflags)
 else
 FPPFLAGS += $(NETCDF_FLAGS)
 endif
+#
 # Fortran Compiler flags for the MPICH MPI library
 ifndef MPI_FLAGS
-FPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
+# yoder:
+#FPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
+FPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
 else
 FPPFLAGS += $(MPI_FLAGS)
 endif
@@ -125,7 +136,8 @@ CPPFLAGS += $(NETCDF_FLAGS)
 endif
 # C Compiler flags for the MPICH MPI library
 ifndef MPI_FLAGS
-CPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
+#CPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
+CPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
 else
 CPPFLAGS += $(MPI_FLAGS)
 endif
@@ -168,7 +180,8 @@ LIBS += $(NETCDF_LIBS)
 endif
 # MPICH MPI library flags
 ifndef MPI_LIBS
-LIBS += $(shell pkg-config --libs mpich2-f90)
+#LIBS += $(shell pkg-config --libs mpich2-f90)
+LIBS += $(shell pkg-config --libs mpich)
 else
 LIBS += $(MPI_LIBS)
 endif
