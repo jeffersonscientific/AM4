@@ -8,8 +8,10 @@
 FC = mpiifort
 CC = mpiicc
 CXX = mpiicpc
-#CXX_s=icpc
-CXX_s=cpp
+# CXX_s = icpc   # spp cxx compiler, if needed (for some odd reason )
+# land_lad2 Makefile uses  cpp (pre-processor?); it might be more optimal to set this as a parameter,
+#  rather than hard-coding.
+CC_pp=cpp
 LD = mpiifort
 #######################
 # Build target macros

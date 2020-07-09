@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH -n 1
+#SBATCH -n 8
 #SBATCH --output=compile_am4_%j.out
 #SBATCH --error=compile_am4_%j.err
 #
@@ -28,9 +28,14 @@ list_paths ${SRC_PATH}
 #
 
 #mkmf -t ${MKMF_TEMPLATE} -p fms.x -c"-Duse_libMPI -Duse_netCDF" path_names ${NETCDF_INC} ${NETCDF_FORTRAN_INC} ${HDF5_DIR}/include ${MPI_DIR}/include /usr/local/include ${NETCDF_LIB} ${NETCDF_FORTRAN_LIB} ${HDF5_DIR}/lib ${MPI_DIR}/lib /usr/local/lig /usr/local/lib64
-#TODO: consider adding LDFLAGS to FFLAGS (or something) so HDF5, etc. are linked properly in some??
+#
 #  of the make components.
-NPROC=8
+if [[ -z ${SLURM_NTASKS} ]]; then
+    NPROCS=${SLURM_NTASKS}
+else
+    NPROC=8
+fi
+
 # we seem to be tripping over ourselves, so let's explicitly do this one component at a time. Block it out here, then
 #  write a loop.
 #
@@ -62,7 +67,7 @@ do
 done
 #
 # Compile diagnostics:
-echo " look for *.a and .x files: "
+echo " look for the target *.a and .x files: "
 for fl in fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a  land_lad2/libland_lad2.a coupler/libcoupler.a fms_cm4p12_warsaw.x
 do
 if [[ "${fl}" = `ls $fl` ]]; then STAT="OK"; else STAT"not-OK"; fi
