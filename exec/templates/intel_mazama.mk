@@ -32,7 +32,6 @@ LD = mpiifort
 # DEBUG - Compile with debug options (-O0 -g)
 # TEST - Use additional compiler options defined in FFLAGS_TEST
 #        and CFLAGS_TEST
-BLD_TYPE=REPRO
 ifndef BLD_TYPE
 BLD_TYPE = PROD
 endif
