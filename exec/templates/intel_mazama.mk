@@ -5,14 +5,37 @@
 
 ############
 # Command Macros
-FC = mpiifort
-CC = mpiicc
-CXX = mpiicpc
+# We want to use the env variables set in the LMOD scripts
+CC_pp=${CC}
+LD=${FC}  # or ${MPIFC} ?
+# then, do we need to coopt the SPP cmpilers , or do the
+# script sproperly call the MPI and SPP compilers?
+# FC=${MPIFC}
+# ...etc.
+#
+# if we were to manually configure, sonmething like this:
+# for Intel-Intel:
+
+#FC = mpiifort
+#CC = mpiicc
+#CXX = mpiicpc
+## CXX_s = icpc   # spp cxx compiler, if needed (for some odd reason )
+## land_lad2 Makefile uses  cpp (pre-processor?); it might be more optimal to set this as a parameter,
+##  rather than hard-coding.
+#CC_pp=cpp
+#LD = mpiifort
+
+For Intel-{other}:
+#FC = mpifort
+#CC = mpicc
+#CXX = mpicpc
 # CXX_s = icpc   # spp cxx compiler, if needed (for some odd reason )
 # land_lad2 Makefile uses  cpp (pre-processor?); it might be more optimal to set this as a parameter,
 #  rather than hard-coding.
-CC_pp=cpp
-LD = mpiifort
+#CC_pp=cpp
+#LD = mpifort
+
+#
 #######################
 # Build target macros
 #
@@ -117,8 +140,12 @@ endif
 #ifndef MPI_FLAGS
 # yoder:
 # we might not have pkg-config for MPI...
+# .. but generally, this is illustrating the difficulty of
+# using the template+script. we should work all of thsi back into the compile script, so we can configure it conditionally.
 #FPPFLAGS += $(shell pkg-config --cflags-only-I mpich2-c)
 #FPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
+# I think this is right for openmpi3:
+#FPPPLAGS  += $(shell pkg-config --cflags-only-I ompi-fort)
 MPI_FLAGS=-L${MPI_DIR}/lib
 #
 FPPFLAGS += $(MPI_FLAGS)
