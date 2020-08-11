@@ -152,6 +152,14 @@ Fortran namelists and namelist variables that modify, at run time, the
 model.  To learn more about the settings in the `input.nml` file,
 please refer to source code where the namelist/variable are defined.
 
+### Running AM4 on your local HPC
+Yoder: This file is also included in this repository (possibly here, in
+the root directory). Likely, the information relatefd to running the 
+model is kept separate because it is likely to chane with revisions, but
+we will review at least some of the details here.
+
+In particular, it is necessary to modify the _input.nml_ file to reflect your HPC topography. This will include entries based on the numbers of tasks (or processes), OMP threads, and nodes. Note also that these configuration settings imply a minimnum task count to run the model.
+
 ## Analysis Scripts
 
 Some of the climate analysis scripts run at NOAA GFDL and used in the
