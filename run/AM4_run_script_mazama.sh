@@ -51,11 +51,12 @@ WORK_DIR="`pwd`/workdir"
 INPUT_DATA_ROOT="`cd ..;pwd`/data"
 INPUT_DATA_PATH="${INPUT_DATA_ROOT}/AM4_run"
 INPUT_DATA_TAR="${INPUT_DATA_ROOT}/AM4_run.tar.gz"
+INPUT_NML_SRC="`pwd`/input_yoder.nml"
 #
 # right now, treat these as either-or... but we might just simplify our script by
 # always copying and extracting the .tar...
 DO_TAR=0
-DO_DATA_COPY=0
+DO_COPY=0
 #
 # Location of EXECUTABLE (run with $mpiexec_prog)
 #EXECUTABLE=/path/to/EXECUTABLE/fms_cm4p12_warsaw.x
@@ -118,7 +119,9 @@ if [[ ${DO_COPY} -eq 1 ]]; then
     rm -rf ${WORK_DIR}
     mkdir -p ${WORK_DIR}
     cp -r ${INPUT_DATA_PATH}/* ${WORK_DIR}/
+    cp ${INPUT_NML_SRC} ${WORK_DIR}/input.nml
 fi
+#cp ${INPUT_NML_SRC} ${WORK_DIR}/input.nml
 #
 #exit 1
 #
@@ -202,6 +205,8 @@ echo "MPI Execute command: "
 echo ${MPI_EXEC} ${MPI_EXEC_NOPT} ${TOTAL_NPES} ${MPI_EXEC_TOPT} ${OMP_THREADS} ${EXECUTABLE}
 #exit 1
 #${MPI_EXEC} ${MPI_EXEC_NOPT} ${TOTAL_NPES} ${MPI_EXEC_TOPT} ${OMP_THREADS} ${EXECUTABLE}
+# can we run this with the input file as a parameter?
+#${MPI_EXEC} ${MPI_EXEC_NOPT} ${TOTAL_NPES} ${EXECUTABLE} ${INPUT_NML_SRC}
 ${MPI_EXEC} ${MPI_EXEC_NOPT} ${TOTAL_NPES} ${EXECUTABLE}
 #
 if [ $? -ne 0 ]
