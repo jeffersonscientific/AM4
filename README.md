@@ -152,6 +152,90 @@ Fortran namelists and namelist variables that modify, at run time, the
 model.  To learn more about the settings in the `input.nml` file,
 please refer to source code where the namelist/variable are defined.
 
+### Running AM4 on your local HPC
+Yoder: This file is also included in this repository (possibly here, in
+the root directory). Likely, the information relatefd to running the 
+model is kept separate because it is likely to chane with revisions, but
+we will review at least some of the details here.
+
+In particular, it is necessary to modify the _input.nml_ file to reflect your HPC topography. This will include entries based on the numbers of tasks (or processes), OMP threads, and nodes. Note also that these configuration settings imply a minimnum task count to run the model. Note that comma-terminating each variable line appears to be optional. One will note that some lines are comma-terminated; others are not; the simulation appears to brek when the values in those fields (literally) to not add up, and run when they do -- in spite of the mixed comma-termination.
+
+#### Namelist edits:
+
+##### &coupler_nml
+- Number of months and days to run:
+  ```
+  &coupler_nml
+        months = 1,
+        days   = 0,
+  ```
+- Number of porcessors and openmp threads. Note the following examples are set for 432 threads and `N=32` core nodes. There is some inconsistency with respect to references to hyperthreading (aka, is this actually 216 physical cores? There is a reference someplace that alludes to this, then a contradiction, and note that in `input.nml` hyperthreading is turned to `.false.`
+  ```
+  &coupler_nml
+        ocean_npes = 0,
+        atmos_npes = 432
+        atmos_nthreads = 2
+        ncores_per_node = 36
+  ```
+  
+- To forego the use of threading, for example if your OS will not support it or if you cannot acquire, or choose not to acquire in order to simplify the allocation of resources, consistent `cpus-per-node` allocations (aka, a SLURM request with just `--ntasks` specified), set nthreads to one,
+  ```
+  atmos_nthreads=1
+  ```
+- Set `nyblocks \times nxblocks = atmos_nthreads`
+  ```
+  nxblocks=1
+  nyblocks=1
+  ```
+
+##### Layouts:
+- There are three layout formats:
+  - `(n1,m1)` so that `n1 \times m1 = N_{procs}`
+  - `(n2,m2)` so that `n2 \times m2 = N_{procs}/6`, where the factor of `6` represents the six sides of a cube.
+  - *io_layout `(j,k)`:* the `y` component of the layout, `(m1, m2)` must be evenly divisible by `k`, `mod(m_j,k)=0`
+- Layout entries include:
+  ```
+  &fv_core_nml
+          layout   = 3,24
+          io_layout = 1,4
+   &ice_model_nml
+          layout = 144,3
+          io_layout = 1,3
+   &land_model_nml
+          layout   = 3,24
+          io_layout = 1,4
+   &ocean_model_nml
+          layout = 144,3
+          io_layout = 1,3
+   ```
+
+Note that these variables can be defined as environment variables, for example:
+  ```
+  export n1=144
+  export m1=3
+  export n2=3
+  export m2=8
+  export j=1
+  export k=3
+  ```
+and then,
+  ```
+  &fv_core_nml
+          layout   = ${n2},${m2}
+          io_layout = ${j},${k}
+  &ice_model_nml
+        layout = ${n1},${m1}
+        io_layout = $j,$k
+ &land_model_nml
+        layout   = $n2,$m2
+        io_layout = $j,$k
+ &ocean_model_nml
+        layout = ${n1},${m1}
+        io_layout = $j,$k
+  ```
+Note this example changes the layout configuration for `&land_model_nml` and `&fv_core_nml`, but in a permissbile manner. Designing `input.nml` this way potentially simplifies the runtime experience by permitting the configuraiton to be set in the run script, and potentially to be computed and validated dynamically.
+
+
 ## Analysis Scripts
 
 Some of the climate analysis scripts run at NOAA GFDL and used in the
