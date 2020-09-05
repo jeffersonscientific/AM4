@@ -6,27 +6,57 @@
 #
 module purge
 #
-#module load intel/19
-#COMP='intel19'
-#PREREQ_COMP="intel/19."
+COMP="intel19"
+MPI="openmpi3"
 #
-# TODO: To use the gnu compiler, we'll need to build up a mkmf template. Might
-#  be able to build up one template for both, but it will probably be tricky.
-#module load gnu/8
-#COMP='gnu8'
-#PREREQ_COMP="gnu8/8.3.0"
+case ${COMP} in
+"intel19")
+    echo "${COMP}/Intel configuration"
+    module load intel/19
+    COMP="intel19"
+    #
+    PREREQ_COMP="atleast(\"intel\", \"19.1.0.166\")"
+    #PREREQ_COMP="intel/19.1.0.166"
+    ;;
+"gnu8")
+    echo "${COMP}/gnu8 configuration"
+    module load gnu/8
+    #PREREQ_COMP="gnu8/8.3.0"
+    PREREQ_COMP="atleast(\"gnu8\", \"8.3.0\")"
+    ;;
+*)
+    echo "Else Compile config (${COMP})"
+    module load intel/19
+    COMP="intel19"
+    PREREQ_COMP="atleast(\"intel\", \"19.1.0.166\")"
+    ;;
+esac
 #
-module load impi_19/
-MPI='impi19'
-PREREQ_MPI='impi/2019.'
-#
-module load openmpi_3/
-MPI='openmpi3'
-PREREQ_MPI='openmpi3/3.'
-#
-#module load mpich_3/
-#MPI='mpich3'
-#PREREQ_MPI='mpich/3.'
+case ${MPI} in
+    "impi19")
+        module load impi_19/
+        MPI="impi19"
+        #PREREQ_MPI='impi/2019.'
+        PREREQ_MPI="atleast(\"impi\", \"2019.6.166\")"
+        ;;
+    "openmpi3")
+        module load openmpi_3/
+        MPI="openmpi3"
+        #PREREQ_MPI='impi/2019.'
+        PREREQ_MPI="atleast(\"openmpi3\", \"3.1.0\")"
+        ;;
+    "mpich3")
+        module load mpich_3/
+        MPI='mpich3'
+        PREREQ_MPI="atleast(\"mpich\", \"3.3.1\")"
+        ;;
+    *)
+        module load openmpi_3/
+        MPI="openmpi3"
+        #PREREQ_MPI='impi/2019.'
+        PREREQ_MPI="atleast(\"openmpi3\", \"3.1.0\")"
+        ;;
+esac
 #
 COMP_MPI=${COMP}_${MPI}
 #
@@ -43,6 +73,11 @@ module load mkmf/
 SRC_PATH=`cd ..;pwd`/src
 MKMF_TEMPLATE="templates/intel_mazama.mk"
 MAKEFILE="Makefile_Mazama"
+#
+echo "Stuff: "
+echo ${COMP_MPI}
+echo ${PREREQ_MPI}
+#exit 1
 #
 DO_COMPILE=1
 WRITE_MODULE=1
