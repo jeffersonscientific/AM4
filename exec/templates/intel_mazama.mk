@@ -10,31 +10,13 @@ CC_pp=${CC}
 LD=${FC}  # or ${MPIFC} ?
 # then, do we need to coopt the SPP cmpilers , or do the
 # script sproperly call the MPI and SPP compilers?
-# FC=${MPIFC}
-# ...etc.
 #
-# if we were to manually configure, sonmething like this:
-# for Intel-Intel:
-
-#FC = mpiifort
-#CC = mpiicc
-#CXX = mpiicpc
+#FC = ${MPIFC}
+#CC = ${MPICC}}
+#CXX = ${MPICXX}
 ## CXX_s = icpc   # spp cxx compiler, if needed (for some odd reason )
 ## land_lad2 Makefile uses  cpp (pre-processor?); it might be more optimal to set this as a parameter,
 ##  rather than hard-coding.
-#CC_pp=cpp
-#LD = mpiifort
-
-For Intel-{other}:
-#FC = mpifort
-#CC = mpicc
-#CXX = mpicpc
-# CXX_s = icpc   # spp cxx compiler, if needed (for some odd reason )
-# land_lad2 Makefile uses  cpp (pre-processor?); it might be more optimal to set this as a parameter,
-#  rather than hard-coding.
-#CC_pp=cpp
-#LD = mpifort
-
 #
 #######################
 # Build target macros
@@ -84,8 +66,10 @@ NETCDF=3
 #
 # MPI_FLAGS
 # MPI_LIBS
-MPI_FLAGS=-I${MPI_DIR}/include
-MPI_LIBS=-L${MPI_DIR}/lib
+MPI_FLAGS=${MPI_FFLAGS} ${MPI_CFLAGS}
+MPI_LIBS=${MPI_LDFLAGS}
+#MPI_FLAGS=-I${MPI_DIR}/include
+#MPI_LIBS=-L${MPI_DIR}/lib
 # If defined, use the MPI compile and link options defined in these
 # variables.  If these options are not defined, the makefile will
 # attempt to get the correct options from the `pkg-config` for mpich2
@@ -125,7 +109,7 @@ ifneq ($(need),$(ok))
 $(error Need at least make version $(need).  Load module gmake/3.81)
 endif
 
-MAKEFLAGS += --jobs=$(shell grep '^processor' /proc/cpuinfo | wc -l)
+#MAKEFLAGS += --jobs=$(shell grep '^processor' /proc/cpuinfo | wc -l)
 
 # Macro for Fortran preprocessor
 FPPFLAGS = -fpp -Wp,-w $(INCLUDES)
@@ -146,7 +130,8 @@ endif
 #FPPFLAGS += $(shell pkg-config --cflags-only-I mpich)
 # I think this is right for openmpi3:
 #FPPPLAGS  += $(shell pkg-config --cflags-only-I ompi-fort)
-MPI_FLAGS=-L${MPI_DIR}/lib
+#MPI_FLAGS=-L${MPI_DIR}/include
+MPI_FLAGS=$(MPI_CFLAGS) $(MPI_FFLAGS)
 #
 FPPFLAGS += $(MPI_FLAGS)
 
@@ -211,7 +196,7 @@ LDFLAGS_COVERAGE = -prof-gen=srcpos
 
 # Start with a blank LIBS
 LIBS =
-#LIBS = ${HDF5_DIR}/lib ${
+LIBS = -L${HDF5_DIR}/lib -L${MPI_DIR}/lib
 
 # NetCDF library flags
 ifndef NETCDF_LIBS

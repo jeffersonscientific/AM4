@@ -4,6 +4,10 @@
 #SBATCH --output=compile_am4_%j.out
 #SBATCH --error=compile_am4_%j.err
 #
+# optionally, clone the repo and navigate to that directory:
+#git clone --recursive git@github.com:jeffersonscientific/AM4.git
+#cd AM4/exec
+#
 module purge
 #
 COMP="intel19"
@@ -38,23 +42,44 @@ case ${MPI} in
         MPI="impi19"
         #PREREQ_MPI='impi/2019.'
         PREREQ_MPI="atleast(\"impi\", \"2019.6.166\")"
+        #
+        MPI_FFLAGS="-I${MPI_DIR}/include $-I{MPI_DIR}/lib "
+        MPI_CFLAGS="-I${MPI_DIR}/include "
+        # guessing a bit here. not sure there is a libmpi.* in
+        MPI_LDFLAGS="-L${MPI_DIR}/lib -lmpi -lmpifort"
         ;;
     "openmpi3")
         module load openmpi_3/
         MPI="openmpi3"
         #PREREQ_MPI='impi/2019.'
         PREREQ_MPI="atleast(\"openmpi3\", \"3.1.0\")"
+        #
+        MPI_FFLAGS="`pkg-config --cflags ompi-fort` "
+        MPI_CFLAGS="`pkg-config --cflags ompi` "
+        MPI_LDFLAGS="`pkg-config --libs ompi-fort` "
         ;;
     "mpich3")
         module load mpich_3/
         MPI='mpich3'
         PREREQ_MPI="atleast(\"mpich\", \"3.3.1\")"
+        #
+        MPI_FFLAGS="`pkg-config --cflags mpich` -I${MPI_DIR}/lib "
+        MPI_CFLAGS="`pkg-config --cflags mpich`"
+        MPI_LDFLAGS="`pkg-config --libs mpich` "
         ;;
     *)
         module load openmpi_3/
         MPI="openmpi3"
         #PREREQ_MPI='impi/2019.'
         PREREQ_MPI="atleast(\"openmpi3\", \"3.1.0\")"
+        #
+        MPI_FFLAGS="`pkg-config --cflags ompi-fort` "
+        MPI_CFLAGS="`pkg-config --cflags ompi` "
+        MPI_LDFLAGS="`pkg-config --libs ompi-fort` "
+        #MPI_FFLAGS="-I${MPI_DIR}/include $-I{MPI_DIR}/lib "
+        #MPI_CFLAGS="-I${MPI_DIR}/include "
+        ## guessing a bit here...
+        #MPI_LDFLAGS="-L${MPI_DIR}/lib -lmpi "
         ;;
 esac
 #
@@ -74,9 +99,28 @@ SRC_PATH=`cd ..;pwd`/src
 MKMF_TEMPLATE="templates/intel_mazama.mk"
 MAKEFILE="Makefile_Mazama"
 #
+# Linker and single processor cc compiler (if we have to constript the SPP compilers to MPI)
+LD=$FC
+CC_pp=${CC}
+#
+FC=${MPIFC}
+CC=${MPICC}
+CXCC=${MPICXX}
+LD=${MPIFC}
+#
+#echo "*** *** `which $MPICXX`"
+
 echo "Stuff: "
 echo ${COMP_MPI}
 echo ${PREREQ_MPI}
+module list
+#
+echo "Compilers: "
+for cc in ${FC} ${CC} ${CXX} ${LD} ${MPIFC} ${MPICC} ${MPICXX}
+do
+    echo "** `which $cc`"
+done
+#
 #exit 1
 #
 DO_COMPILE=1
@@ -91,8 +135,16 @@ MODULE_TARGET="/share/cees/modules/moduledeps/${COMP}-${MPI}/gfdl_am4"
 #  break (intentionally). We could, for example, name each compiled exe. for its compiler/MPI. but do we need to?
 AM4_EXE="fms_cm4p12_warsaw.x"
 #
-# this shell script, part of mkmf, will create the file path_names
+# this shell script, part of mkmf, creates the file path_names
 list_paths ${SRC_PATH}
+#
+export MPI_FFLAGS=${MPI_FFLAGS}
+export MPI_CFLAGS=${MPI_CFLAGS}
+export MPI_LDFLAGS=${MPI_LDFLAGS}
+# now, set up all the _FLAGS variables here, instead of the template. see if we can get rid of the template...
+export NETCDF_FLAGS=`nf-config --cflags`
+export NETCDF_LIBS=`nf-config --flibs`
+#
 #
 
 #mkmf -t ${MKMF_TEMPLATE} -p fms.x -c"-Duse_libMPI -Duse_netCDF" path_names ${NETCDF_INC} ${NETCDF_FORTRAN_INC} ${HDF5_DIR}/include ${MPI_DIR}/include /usr/local/include ${NETCDF_LIB} ${NETCDF_FORTRAN_LIB} ${HDF5_DIR}/lib ${MPI_DIR}/lib /usr/local/lig /usr/local/lib64
@@ -101,7 +153,7 @@ list_paths ${SRC_PATH}
 if [[ -z ${SLURM_NTASKS} ]]; then
     NPROCS=${SLURM_NTASKS}
 else
-    NPROC=8
+    NPROC=12
 fi
 
 # we seem to be tripping over ourselves, so let's explicitly do this one component at a time. Block it out here, then
@@ -111,6 +163,7 @@ fi
 
 #make -j${NPROC} -f Makefile_Mazama fms/libfms.a
 #make -j${NPROC} -f Makefile_Mazama atmos_phys/libatmos_phys.a
+#exit 1
 ## requires the two above:
 #make -j${NPROC} -f Makefile_Mazama atmos_dyn/libatmos_dyn.a
 #
@@ -128,7 +181,8 @@ fi
 if [[ ${DO_COMPILE} -eq 1 ]]; then
     # looks like it is not uncommon to break on certain components, so loop over each component
     # and try the make:
-    for target in clean fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a  land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
+    # clean
+    for target in clean fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
     do
         make -j${NPROCS} -f ${MAKEFILE} $target
         if [[ ! $? -eq 0 ]]; then
@@ -139,11 +193,11 @@ if [[ ${DO_COMPILE} -eq 1 ]]; then
     #
     # Compile diagnostics:
     echo " look for the target *.a and .x files: "
-    for fl in fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a  land_lad2/libland_lad2.a coupler/libcoupler.a fms_cm4p12_warsaw.x
+    for fl in fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a  land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
     do
     if [[ "${fl}" = `ls $fl` ]]; then STAT="OK"; else STAT"not-OK"; fi
     echo "built file $fl::  `ls $fl` :: ${STAT}"
-    done
+   done
 fi
 #
 # now, copy executable to target. Anything else need to get copied?
