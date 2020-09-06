@@ -11,7 +11,7 @@
 module purge
 #
 COMP="intel19"
-MPI="openmpi3"
+MPI="mpich3"
 #
 case ${COMP} in
 "intel19")
@@ -217,8 +217,8 @@ if [[ WRITE_MODULE -eq 1 ]]; then
 cat > ${MODULE_TARGET}/${VER}.lua <<EOF
 -- -*- lua
 --
-prereq("${PREREQ_COMP}")
-prereq("${PREREQ_MPI}")
+prereq(${PREREQ_COMP})
+prereq(${PREREQ_MPI})
 --
 depends_on("netcdf/")
 depends_on("netcdf-fortran/")
