@@ -11,7 +11,7 @@
 module purge
 #
 COMP="intel19"
-MPI="mpich3"
+MPI="impi19"
 #
 case ${COMP} in
 "intel19")
@@ -38,12 +38,12 @@ esac
 #
 case ${MPI} in
     "impi19")
-        module load impi_19/
+        module load impi_19/2019.6.166
         MPI="impi19"
         #PREREQ_MPI='impi/2019.'
         PREREQ_MPI="atleast(\"impi\", \"2019.6.166\")"
         #
-        MPI_FFLAGS="-I${MPI_DIR}/include $-I{MPI_DIR}/lib "
+        MPI_FFLAGS="-I${MPI_DIR}/include -I${MPI_DIR}/lib "
         MPI_CFLAGS="-I${MPI_DIR}/include "
         # guessing a bit here. not sure there is a libmpi.* in
         MPI_LDFLAGS="-L${MPI_DIR}/lib -lmpi -lmpifort"
