@@ -55,7 +55,7 @@ the number of cores.
 Example:
 atmos_npes = 432
 layout = 144,3
-133*3 = 432
+144*3 = 432
 The layout changes are in the following namelists:
  &fv_core_nml
         layout   = 3,24
