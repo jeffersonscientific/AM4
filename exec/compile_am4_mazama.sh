@@ -125,9 +125,12 @@ done
 #
 DO_COMPILE=1
 WRITE_MODULE=1
-VER="1.0.0"
-SW_TARGET="/share/cees/software/gfdl_am4/${COMP_MPI}/${VER}"
-MODULE_TARGET="/share/cees/modules/moduledeps/${COMP}-${MPI}/gfdl_am4"
+#VER="1.0.0"
+VER="1.0.1"
+#TARGET_ROOT="/share/cees"
+TARGET_ROOT="/scratch/${USER}/.local"
+SW_TARGET="${TARGET_ROOT}/software/gfdl_am4/${COMP_MPI}/${VER}"
+MODULE_TARGET="${TARGET_ROOT}/modules/moduledeps/${COMP}-${MPI}/gfdl_am4"
 #
 # The executable: This is a little sloppy. The executable name is specified inthe Makefile, and could/should maybe
 #  be modified. It looks like this binary is specific to an experiment, or something... but for now, as a mater of
@@ -153,7 +156,7 @@ export NETCDF_LIBS=`nf-config --flibs`
 if [[ -z ${SLURM_NTASKS} ]]; then
     NPROCS=${SLURM_NTASKS}
 else
-    NPROC=12
+    NPROC=1
 fi
 
 # we seem to be tripping over ourselves, so let's explicitly do this one component at a time. Block it out here, then
@@ -173,6 +176,8 @@ fi
 #
 #make -j1 -f Makefile_Mazama land_lad2/libland_lad2.a
 
+#echo "TARGET_PATH: ${SW_TARGET}"
+#exit 1
 
 ##
 #make -j${NPROC} -f Makefile_Mazama coupler/libcoupler.a
@@ -182,14 +187,20 @@ if [[ ${DO_COMPILE} -eq 1 ]]; then
     # looks like it is not uncommon to break on certain components, so loop over each component
     # and try the make:
     # clean
-    for target in clean fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
-    do
-        make -j${NPROCS} -f ${MAKEFILE} $target
-        if [[ ! $? -eq 0 ]]; then
-            echo "Failed building at: ${target}"
-            exit 1
-        fi
-    done
+    make -j${NPROCS} -f ${MAKEFILE}
+    #
+#    for target in clean fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
+#    do
+#	echo Compiling component: $target
+#        make -j${NPROCS} -f ${MAKEFILE} $target
+#        if [[ ! $? -eq 0 ]]; then
+#            echo "Failed building at: ${target}"
+#            exit 1
+#        fi
+#    done
+    if [[ $? -eq 0 ]]; then
+        echo "broke on makefile"
+    fi
     #
     # Compile diagnostics:
     echo " look for the target *.a and .x files: "

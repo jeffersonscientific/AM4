@@ -2,7 +2,7 @@
 #
 #SBATCH --ntasks=32
 #SBATCH --output=AM4_out_%j.out
-#SBATCH --error=AM4_OUT_$j.err
+#SBATCH --error=AM4_OUT_%j.err
 #
 module purge
 module load intel/19
@@ -23,7 +23,7 @@ module load gfdl_am4/1.0.0
 # sha256sum -c AM4_run.tar.gz.sha256
 #gpg --verify AM4_run.tar.gz.sig
 #
-# and you'll need to make some adjustments to inpuyt.nml. Instructions in README file:
+# and you'll need to make some adjustments to input.nml. Instructions in README file:
 # wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/README.AM4_run
 # NOTE: these are ftp links, which some browsers (Safari) might not permit access to. if you use a browser and get a "can't find address,"
 #  or something, it might be a security exception.
@@ -56,7 +56,7 @@ INPUT_NML_SRC="`pwd`/input_yoder.nml"
 # right now, treat these as either-or... but we might just simplify our script by
 # always copying and extracting the .tar...
 DO_TAR=0
-DO_COPY=0
+DO_COPY=1
 #
 # Location of EXECUTABLE (run with $mpiexec_prog)
 #EXECUTABLE=/path/to/EXECUTABLE/fms_cm4p12_warsaw.x
@@ -107,14 +107,42 @@ then
   echo "ERROR: Unable to find \`${MPI_EXEC}\` in PATH." 1>&2
   echo "ERROR: Halting script." 1>&2
 fi
+#
+if [[ ! -d ${INPUT_DATA_ROOT} ]]; then
+    mkdir -p ${INPUT_DATA_ROOT}
+fi
+if [[ ! -d ${INPUT_DATA_PATH} ]]; then
+    THIS_PATH = `pwd`
+    cd ${INPUT_DATA_ROOT}
+    if [[ ! -f ${INPUT_DATA_TAR} ]]; then
+            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz
+            #
+            # checksums:
+            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sha256
+            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sig
+            echo "sha checksum: "
+            sha256sum -c AM4_run.tar.gz.sha256
+            #
+            echo "gpg checksum:"
+            gpg --verify AM4_run.tar.gz.sig
+            #
+            # extract:
+            tar xfzv  AM4_run.tar.gz
+    fi
+fi
+cd ${THIS_PATH}
 
-
+#exit 1
+#
 # Verify work directory exists, if not create it.
 # NOTE: the workflow for $WORK_DIR is really not one size fits all. Users will probably
 #  want to design this script for their own purposes, queue properties, etc.
 #  For our initial test purposes,let's leave all these checks in place but we'll do a
 #  drocanian, nuclear option setup here:
 #
+# For reference, DO_COPY=1 is a good default for first-time runs. It will copy the data from the input
+#  path to the working path, then copy the NML file from (here?) to the working path. It is also a good
+#  way to maybe keep your data in on proper repository FS, but then work on thoe dataon a $SCRATCH system.
 if [[ ${DO_COPY} -eq 1 ]]; then
     rm -rf ${WORK_DIR}
     mkdir -p ${WORK_DIR}
