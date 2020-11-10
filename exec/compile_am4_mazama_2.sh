@@ -11,7 +11,7 @@
 module purge
 #
 COMP="intel19"
-MPI="impi19"
+MPI="mpich3"
 #
 if [[ $1 != "" ]]; then
     COMP=$1
@@ -20,7 +20,7 @@ if [[  $2 != "" ]]; then
     MPI=$2
 fi
 DO_CLEAN=1
-if [[  $3 != "" ]]; then
+if [[ $3 != "" ]]; then
     DO_CLEAN=$3
 fi
 #
@@ -107,8 +107,34 @@ module load mkmf/
 # how the F does mkmf (really) work?
 # We should be in the exec dir:
 SRC_PATH=`cd ..;pwd`/src
+#BUILD_PATH="`pwd`/build_${COMP_MPI}"
+BUILD_PATH="`cd ..;pwd`/build_${COMP_MPI}_prod"
+EXEC_SRC=`pwd`
 MKMF_TEMPLATE="templates/intel_mazama.mk"
-MAKEFILE="Makefile_Mazama"
+MAKEFILE="Makefile_Mazama_2"
+#
+#MKMF_TEMPLATE_SRC="`pwd`/templates/intel_mazama.mk"
+#MAKEFILE_SRC="`pwd`/Makefile_Mazama"
+#
+#MKMF_TEMPLATE="${BUILD_PATH}/exec/intel_mazama.mk"
+#MAKEFILE="${BUILD_PATH}/exec/Makefile_Mazama"
+#
+echo "* ***: ${MAKEFILE}, ${MKMF_TEMPLATE}, ${EXEC_SRC}, ${BUILD_PATH}"
+#exit 1
+#
+if [[ ! -d ${BUILD_PATH} ]]; then
+    mkdir -p ${BUILD_PATH}
+fi
+#cp ${MKMF_TEMPLATE_SRC} ${MKMF_TEMPLATE}
+#cp ${MAKEFILE_SRC} ${MAKEFILE}
+#cd ${BUILD_PATH}
+cp -r ${EXEC_SRC} ${BUILD_PATH}/
+cd ${BUILD_PATH}/exec
+export BUILD_PATH=${BUILD_PATH}
+export SRC_PATH=${SRC_PATH}
+#
+echo "in exec: `pwd`"
+ls
 #
 # Linker and single processor cc compiler (if we have to constript the SPP compilers to MPI)
 LD=$FC
@@ -120,7 +146,7 @@ CXCC=${MPICXX}
 LD=${MPIFC}
 #
 #echo "*** *** `which $MPICXX`"
-
+#
 echo "Stuff: "
 echo ${COMP_MPI}
 echo ${PREREQ_MPI}
@@ -134,9 +160,8 @@ done
 #
 #exit 1
 #
-DO_COMPILE=1
+[[ -z ${DO_COMPILE} ]] && DO_COMPILE=1
 WRITE_MODULE=1
-if [[ ${DO_CLEAN}=="" ]]; then DO_CLEAN=1; fi
 #VER="1.0.0"
 VER="1.0.1"
 TARGET_ROOT="/share/cees"
@@ -148,7 +173,7 @@ MODULE_TARGET="${TARGET_ROOT}/modules/moduledeps/${COMP}-${MPI}/gfdl_am4"
 #  be modified. It looks like this binary is specific to an experiment, or something... but for now, as a mater of
 #  deference, we'll leave it as is. Note we're not really setting it here; but if we get it wrong, the compile will
 #  break (intentionally). We could, for example, name each compiled exe. for its compiler/MPI. but do we need to?
-AM4_EXE="fms_cm4p12_warsaw.x"
+export AM4_EXE="fms_cm4p12_warsaw.x"
 #
 # this shell script, part of mkmf, creates the file path_names
 list_paths ${SRC_PATH}
@@ -160,52 +185,40 @@ export MPI_LDFLAGS=${MPI_LDFLAGS}
 export NETCDF_FLAGS=`nf-config --cflags`
 export NETCDF_LIBS=`nf-config --flibs`
 #
-#
-
 #mkmf -t ${MKMF_TEMPLATE} -p fms.x -c"-Duse_libMPI -Duse_netCDF" path_names ${NETCDF_INC} ${NETCDF_FORTRAN_INC} ${HDF5_DIR}/include ${MPI_DIR}/include /usr/local/include ${NETCDF_LIB} ${NETCDF_FORTRAN_LIB} ${HDF5_DIR}/lib ${MPI_DIR}/lib /usr/local/lig /usr/local/lib64
 #
 #  of the make components.
 if [[ -z ${SLURM_NTASKS} ]]; then
     NPROCS=${SLURM_NTASKS}
 else
-    NPROC=1
+    NPROC=12
 fi
 
 # we seem to be tripping over ourselves, so let's explicitly do this one component at a time. Block it out here, then
 #  write a loop.
 #
-#make -f Makefile_Mazama clean
-
-#make -j${NPROC} -f Makefile_Mazama fms/libfms.a
-#make -j${NPROC} -f Makefile_Mazama atmos_phys/libatmos_phys.a
-#exit 1
-## requires the two above:
-#make -j${NPROC} -f Makefile_Mazama atmos_dyn/libatmos_dyn.a
-#
-## MOM6 is currently unable to run with OpenMP enabled
-#make -j${NPROC} -f Makefile_Mazama mom6/libmom6.a
-#make -j${NPROC} -f Makefile_Mazama ice_sis/libice_sis.a
-#
-#make -j1 -f Makefile_Mazama land_lad2/libland_lad2.a
-
-#echo "TARGET_PATH: ${SW_TARGET}"
+echo "** DEBUG: exiting. STatus:"
+echo "Path: `pwd`"
+echo "Makefile: ${MAKEFILE}"
+echo "ls: `ls`"
 #exit 1
 
-##
-#make -j${NPROC} -f Makefile_Mazama coupler/libcoupler.a
-#make -j${NPROC} -f Makefile_Mazama fms_cm4p12_warsaw.x
-#
 if [[ ${DO_COMPILE} -eq 1 ]]; then
     # looks like it is not uncommon to break on certain components, so loop over each component
     # and try the make:
     if [[ ${DO_CLEAN} -eq 1 ]]; then
-        make clean
+        make -j${NPROCS} -f ${MAKEFILE} clean
+        for pth in mom6 land_lad2 ice_sis fms coupler atmos_phys atmos_dyn
+        do
+            rm ${pth}/*.o
+            rm ${pth}/*.mod
+        done
     fi
     #make -j${NPROCS} -f ${MAKEFILE}
     #
-    for target in fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
+    for target in clean fms/libfms.a atmos_phys/libatmos_phys.a atmos_dyn/libatmos_dyn.a mom6/libmom6.a ice_sis/libice_sis.a coupler/libcoupler.a land_lad2/libland_lad2.a coupler/libcoupler.a ${AM4_EXE}
     do
-	echo Compiling component: $target
+	echo "\n** Compiling component: $target"
         make -j${NPROCS} -f ${MAKEFILE} $target
         if [[ ! $? -eq 0 ]]; then
             echo "Failed building at: ${target}"
@@ -214,7 +227,6 @@ if [[ ${DO_COMPILE} -eq 1 ]]; then
     done
     if [[ $? -eq 0 ]]; then
         echo "broke on makefile"
-        exit 1
     fi
     #
     # Compile diagnostics:

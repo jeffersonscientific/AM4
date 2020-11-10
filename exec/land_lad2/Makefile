@@ -92,7 +92,8 @@ land_tile_io.o: $(SRCROOT)land_lad2/shared/land_tile_io.F90 nf_utils.o land_io.o
 	$(eval preproc := $(addsuffix .DO_NOT_MODIFY.f90,$(basename $(notdir $<))))
 	cpp -nostdinc -C -v $(CPPDEFS) $(CPPFLAGS) $< > $(preproc)
 	$(FC) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c -o $@ 	$(preproc)
-land_tracer_driver.o: $(SRCROOT)land_lad2/land_tracers/land_tracer_driver.F90 $(SRCROOT)land_lad2/predefined_tiles/../shared/debug.inc $(SRCROOT)land_lad2/predefined_tiles/../shared/version_variable.inc table_printer.o land_constants.o land_debug.o land_data.o land_tracers.o land_tile.o land_tile_diag.o cana_tile.o vegn_data.o vegn_tile.o vegn_cohort.o
+# yoder: add land_dust.o to land_trace_driver.op dependendies
+land_tracer_driver.o: $(SRCROOT)land_lad2/land_tracers/land_tracer_driver.F90 $(SRCROOT)land_lad2/predefined_tiles/../shared/debug.inc land_dust.o $(SRCROOT)land_lad2/predefined_tiles/../shared/version_variable.inc table_printer.o land_constants.o land_debug.o land_data.o land_tracers.o land_tile.o land_tile_diag.o cana_tile.o vegn_data.o vegn_tile.o vegn_cohort.o
 	$(eval preproc := $(addsuffix .DO_NOT_MODIFY.f90,$(basename $(notdir $<))))
 	cpp -nostdinc -C -v $(CPPDEFS) $(CPPFLAGS) $< > $(preproc) -I$(SRCROOT)land_lad2/predefined_tiles/../shared
 	$(FC) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c -o $@ 	$(preproc)

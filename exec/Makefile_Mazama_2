@@ -1,13 +1,13 @@
 # Makefile for Experiment 'cm4p12_warsaw'
 
-BUILDROOT = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
-SRCROOT = $(abspath $(BUILDROOT)../src)/ # Final '/' added to denote directory
+#BUILDROOT = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
+#SRCROOT = $(abspath $(BUILDROOT)../src)/ # Final '/' added to denote directory
 #
 # we could use a scheme like this so we can (more easily) have a build directory
 #  and do multiple platform builds simultaneously. BUT, be sure to export
 #  the SRC_PATH, etc. variables.
-#SRCROOT = ${SRC_PATH}
-#BUILDROOT = ${BUILD_PATH}/exec/
+SRCROOT = ${SRC_PATH}/
+BUILDROOT = ${BUILD_PATH}/exec/
 
 $(info "Info: make command directory: [$(BUILDROOT)fms ])
 
@@ -24,7 +24,8 @@ include $(MK_TEMPLATE)
 
 SUBMAKEFLAGS = BUILDROOT=$(BUILDROOT) SRCROOT=$(SRCROOT) MK_TEMPLATE=$(MK_TEMPLATE) BLD_TYPE=$(BLD_TYPE)
 
-fms_cm4p12_warsaw.x: coupler/libcoupler.a ice_sis/libice_sis.a atmos_dyn/libatmos_dyn.a land_lad2/libland_lad2.a atmos_phys/libatmos_phys.a mom6/libmom6.a fms/libfms.a
+#fms_cm4p12_warsaw.x: coupler/libcoupler.a ice_sis/libice_sis.a atmos_dyn/libatmos_dyn.a land_lad2/libland_lad2.a atmos_phys/libatmos_phys.a mom6/libmom6.a fms/libfms.a
+${AM4_EXE}: coupler/libcoupler.a ice_sis/libice_sis.a atmos_dyn/libatmos_dyn.a land_lad2/libland_lad2.a atmos_phys/libatmos_phys.a mom6/libmom6.a fms/libfms.a
 	$(LD) $^ $(LDFLAGS) -o $@ $(STATIC_LIBS)
 
 fms/libfms.a:  FORCE
