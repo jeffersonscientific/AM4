@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --ntasks=32
+#SBATCH --ntasks=24
 #SBATCH --output=AM4_out_%j.out
 #SBATCH --error=AM4_OUT_%j.err
 #
@@ -8,9 +8,15 @@ module purge
 module load intel/19
 module load openmpi_3/
 #module load mpich_3/
-module load gfdl_am4/1.0.0
+#module load impi_19/
+module load gfdl_am4/
 #
 # Sample run script to run the am4p0 experiment
+# Some comments:
+# 1. The idea is to have a push-button script that does all the things. 1) compile is a long process, so let's not do that (so far, I can
+#  really only get it to run on 4 threads or so, and that runs ~ 3 hours). 2) LOTS of input data! so we're going to have to look more closely
+#  at how and when to run off multiple input data sets. this soup-to-nuts approach, where we download, untar, and maybe copy the input data can
+#  easily take a couple hours.
 #
 # Getting the data:
 # see:
@@ -45,22 +51,25 @@ MPI_EXEC_TOPT="-d"
 # Where to perform the run
 # If using AM4.tar, this should be AM4_run
 #w=/path/to/run/dir
-WORK_DIR="`pwd`/workdir"
+#WORK_DIR="`pwd`/workdir"
+WORK_DIR="${SCRATCH}/AM4/workdir"
 #
 # Input Data:
 INPUT_DATA_ROOT="`cd ..;pwd`/data"
 INPUT_DATA_PATH="${INPUT_DATA_ROOT}/AM4_run"
 INPUT_DATA_TAR="${INPUT_DATA_ROOT}/AM4_run.tar.gz"
-INPUT_NML_SRC="`pwd`/input_yoder.nml"
+INPUT_NML_SRC="`pwd`/input_yoder_v101.nml"
+DIAG_TABLE_SRC="`pwd`/diag_table_v101"
+#
 #
 # right now, treat these as either-or... but we might just simplify our script by
 # always copying and extracting the .tar...
 DO_TAR=0
-DO_COPY=1
+DO_COPY=0
 #
 # Location of EXECUTABLE (run with $mpiexec_prog)
 #EXECUTABLE=/path/to/EXECUTABLE/fms_cm4p12_warsaw.x
-EXECUTABLE=$AM4_GFDL_BIN/${AM4_GFDL_EXE}
+EXECUTABLE=${AM4_GFDL_BIN}/${AM4_GFDL_EXE}
 #
 #
 ## Run parameters
@@ -94,13 +103,7 @@ export F_UFMTENDIAN=big
 
 # Remember CWD
 initialDir=`pwd`
-
-# check of required programs
-#if ! hash tar 2> /dev/null
-#then
-#  echo "ERROR: Unable to find \`tar\` in PATH." 1>&2
-#  echo "ERROR: Halting script." 1>&2
-#fi
+#
 #
 if ! hash ${MPI_EXEC} 2> /dev/null
 then
@@ -108,26 +111,28 @@ then
   echo "ERROR: Halting script." 1>&2
 fi
 #
-if [[ ! -d ${INPUT_DATA_ROOT} ]]; then
-    mkdir -p ${INPUT_DATA_ROOT}
-fi
-if [[ ! -d ${INPUT_DATA_PATH} ]]; then
-    THIS_PATH = `pwd`
-    cd ${INPUT_DATA_ROOT}
-    if [[ ! -f ${INPUT_DATA_TAR} ]]; then
-            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz
-            #
-            # checksums:
-            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sha256
-            wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sig
-            echo "sha checksum: "
-            sha256sum -c AM4_run.tar.gz.sha256
-            #
-            echo "gpg checksum:"
-            gpg --verify AM4_run.tar.gz.sig
-            #
-            # extract:
-            tar xfzv  AM4_run.tar.gz
+if [[ ${DO_COPY} -eq 1 ]]; then
+    if [[ ! -d ${INPUT_DATA_ROOT} ]]; then
+        mkdir -p ${INPUT_DATA_ROOT}
+    fi
+    if [[ ! -d ${INPUT_DATA_PATH} ]]; then
+        THIS_PATH=`pwd`
+        cd ${INPUT_DATA_ROOT}
+        if [[ ! -f ${INPUT_DATA_TAR} ]]; then
+                wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz
+                #
+                # checksums:
+                wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sha256
+                wget ftp://nomads.gfdl.noaa.gov/users/Ming.Zhao/AM4Documentation/GFDL-AM4.0/inputData/AM4_run.tar.gz.sig
+                echo "sha checksum: "
+                sha256sum -c AM4_run.tar.gz.sha256
+                #
+                echo "gpg checksum:"
+                gpg --verify AM4_run.tar.gz.sig
+                #
+                # extract:
+                tar xfzv  AM4_run.tar.gz
+        fi
     fi
 fi
 cd ${THIS_PATH}
@@ -143,8 +148,13 @@ cd ${THIS_PATH}
 # For reference, DO_COPY=1 is a good default for first-time runs. It will copy the data from the input
 #  path to the working path, then copy the NML file from (here?) to the working path. It is also a good
 #  way to maybe keep your data in on proper repository FS, but then work on thoe dataon a $SCRATCH system.
+cp ${INPUT_NML_SRC} ${WORK_DIR}/input.nml
+cp ${DIAG_TABLE_SRC} ${WORK_DIR}/diag_table
 if [[ ${DO_COPY} -eq 1 ]]; then
-    rm -rf ${WORK_DIR}
+    if [[ -d ${WORK_DIR} ]]; then
+        rm -rf ${WORK_DIR}
+    fi
+    #
     mkdir -p ${WORK_DIR}
     cp -r ${INPUT_DATA_PATH}/* ${WORK_DIR}/
     cp ${INPUT_NML_SRC} ${WORK_DIR}/input.nml
@@ -178,19 +188,17 @@ fi
 
 # Enter working directory, and setup the directory
 cd ${WORK_DIR}
-if [ $? -ne 0 ]
-then
+if [[ $? -ne 0 ]];then
   echo "ERROR: Unable \`cd\` into work directory \"${WORK_DIR}\"." 1>&2
   echo "ERROR: Halting script." 1>&2
   exit 1
 fi
-
+#
 # Create RESTART directory, if it doesn't eixt.
-if [ ! -e RESTART ]
+if [[ ! -e RESTART ]]
 then
   mkdir RESTART
-  if [ $? -ne 0 ]
-  then
+  if [[ $? -ne 0 ]];then
     echo "ERROR: Unable to create directory \"${WORK_DIR}/RESTART\"." 1>&2
     echo "ERROR: Halting script." 1>&2
     exit 1
@@ -225,7 +233,6 @@ fi
 #  echo "ERROR: Halting script." 1>&2
 #fi
 #
-
 # Run the model
 ulimit -s unlimited
 echo "MPI Execute command: "
