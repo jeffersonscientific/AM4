@@ -169,7 +169,7 @@ In particular, it is necessary to modify the _input.nml_ file to reflect your HP
         months = 1,
         days   = 0,
   ```
-- Number of porcessors and openmp threads. Note the following examples are set for 432 threads and `N=32` core nodes. There is some inconsistency with respect to references to hyperthreading (aka, is this actually 216 physical cores? There is a reference someplace that alludes to this, then a contradiction, and note that in `input.nml` hyperthreading is turned to `.false.`
+- Number of porcessors and openmp threads. Note the following examples are set for 432 threads and `N=36` core nodes. There is some inconsistency with respect to references to hyperthreading (aka, is this actually 216 physical cores? There is a reference someplace that alludes to this, then a contradiction, and note that in `input.nml` hyperthreading is turned to `.false.`
   ```
   &coupler_nml
         ocean_npes = 0,
