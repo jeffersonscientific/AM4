@@ -209,7 +209,7 @@ In particular, it is necessary to modify the _input.nml_ file to reflect your HP
           io_layout = 1,3
    ```
 
-Note that these variables can be defined as environment variables, for example:
+Note that these variables can (in principle) be defined as environment variables, for example:
   ```
   export n1=144
   export m1=3
@@ -234,6 +234,8 @@ and then,
         io_layout = $j,$k
   ```
 Note this example changes the layout configuration for `&land_model_nml` and `&fv_core_nml`, but in a permissbile manner. Designing `input.nml` this way potentially simplifies the runtime experience by permitting the configuraiton to be set in the run script, and potentially to be computed and validated dynamically.
+
+Unfortunatly, I have had, to date, very limited luck getting this environment-variable approach to work. Either I am making a mistake somewhere, or some of the variables are not being read correctly. Either way, a better approach is probably to use a script to write a fresh `input.nml`.
 
 
 ## Analysis Scripts
